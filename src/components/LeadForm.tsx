@@ -18,6 +18,7 @@ export default function LeadForm({ sourcePage = 'General Website', className = '
     message: '',
     agreedToTerms: true
   });
+  const [honeypot, setHoneypot] = useState('');
 
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
@@ -32,8 +33,10 @@ export default function LeadForm({ sourcePage = 'General Website', className = '
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (status === 'submitting') return;
+
     if (!formData.name || !formData.phone || !formData.serviceNeeded || !formData.city) {
       setStatus('error');
       setErrorMessage('Please fill in all required fields (Name, Phone, City, Service).');
@@ -41,13 +44,49 @@ export default function LeadForm({ sourcePage = 'General Website', className = '
     }
 
     setStatus('submitting');
-    
-    // Simulate API call to express backend /api/contact or similar
-    setTimeout(() => {
-      setStatus('success');
-      // Console log for telemetry/debugging
-      console.log('Lead submitted successfully from:', sourcePage, formData);
-    }, 1200);
+    setErrorMessage('');
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          phone: formData.phone.trim(),
+          email: formData.email.trim(),
+          city: formData.city,
+          service: formData.serviceNeeded,
+          message: formData.message.trim(),
+          hp_field: honeypot,
+          sourcePage
+        })
+      });
+
+      const contentType = response.headers.get('content-type');
+      let data: any = null;
+
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          data = await response.json();
+        } catch (jsonErr) {
+          console.error('Failed to parse JSON response:', jsonErr);
+        }
+      }
+
+      if (response.ok && data?.success) {
+        setStatus('success');
+      } else {
+        setStatus('error');
+        setErrorMessage("Sorry, we couldn't send your request. Please call us directly.");
+      }
+    } catch (networkErr) {
+      console.error('Lead form submission network error:', networkErr);
+      setStatus('error');
+      setErrorMessage("Sorry, we couldn't send your request. Please call us directly.");
+    }
   };
 
   if (status === 'success') {
@@ -57,10 +96,10 @@ export default function LeadForm({ sourcePage = 'General Website', className = '
           <CheckCircle className="w-10 h-10" />
         </div>
         <h3 className="text-emerald-950 font-extrabold text-xl md:text-2xl tracking-tight">
-          Request Received Successfully!
+          Thank you. Your request has been received. We'll be in touch shortly.
         </h3>
         <p className="text-emerald-800 text-sm mt-3 leading-relaxed">
-          Thank you, <strong>{formData.name}</strong>. Our local Appleton service coordinator has received your request for <strong>{formData.serviceNeeded}</strong>.
+          Thank you, <strong>{formData.name}</strong>. Our local Appleton service coordinator has received your request for <strong>{formData.serviceNeeded}</strong> in <strong>{formData.city}</strong>.
         </p>
         <div className="bg-white rounded-xl p-4 my-5 border border-emerald-100 text-left text-xs text-slate-600 flex flex-col gap-2 shadow-sm">
           <span className="font-bold text-slate-800 text-sm block border-b border-slate-100 pb-1.5">What Happens Next?</span>
@@ -73,7 +112,7 @@ export default function LeadForm({ sourcePage = 'General Website', className = '
             className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-6 rounded-xl text-sm shadow transition-all flex items-center justify-center gap-2"
           >
             <PhoneCall className="w-4 h-4 fill-current" />
-            Call Emergency Line Now
+            Call Emergency Line: (920) 454-9949
           </a>
         </div>
       </div>
@@ -89,10 +128,33 @@ export default function LeadForm({ sourcePage = 'General Website', className = '
       </div>
 
       <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
+        {/* Hidden Honeypot Field for Spam Protection */}
+        <div className="hidden" aria-hidden="true" style={{ display: 'none' }}>
+          <label htmlFor="form-hp-field">Leave this field empty</label>
+          <input
+            id="form-hp-field"
+            type="text"
+            name="hp_field"
+            value={honeypot}
+            onChange={(e) => setHoneypot(e.target.value)}
+            tabIndex={-1}
+            autoComplete="off"
+          />
+        </div>
+
         {status === 'error' && (
-          <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-3 text-xs flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0 text-red-600 mt-0.5" />
-            <span>{errorMessage}</span>
+          <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-3 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-red-600 mt-0.5" />
+              <span className="font-semibold">{errorMessage}</span>
+            </div>
+            <a
+              href="tel:9204549949"
+              className="bg-red-600 hover:bg-red-700 text-white font-bold py-1.5 px-3 rounded-lg text-xs tracking-wide shrink-0 transition-colors flex items-center gap-1"
+            >
+              <PhoneCall className="w-3.5 h-3.5 fill-current" />
+              (920) 454-9949
+            </a>
           </div>
         )}
 
@@ -226,7 +288,7 @@ export default function LeadForm({ sourcePage = 'General Website', className = '
         <button
           type="submit"
           disabled={status === 'submitting'}
-          className="w-full bg-amber-500 hover:bg-amber-600 disabled:bg-slate-300 text-slate-950 font-black py-3 px-6 rounded-xl text-sm tracking-wider transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer border border-amber-600 mt-2 hover:shadow-lg active:scale-95 transform"
+          className="w-full bg-amber-500 hover:bg-amber-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-slate-950 font-black py-3 px-6 rounded-xl text-sm tracking-wider transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer border border-amber-600 mt-2 hover:shadow-lg active:scale-95 transform"
         >
           {status === 'submitting' ? (
             <>
@@ -244,3 +306,4 @@ export default function LeadForm({ sourcePage = 'General Website', className = '
     </div>
   );
 }
+
