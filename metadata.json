@@ -1,0 +1,8 @@
+{
+  "name": "Appleton, WI Garage Doors",
+  "description": "High-converting SEO website for Appleton, WI garage door repairs, spring replacement, opener installation, and 24/7 emergency services.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
