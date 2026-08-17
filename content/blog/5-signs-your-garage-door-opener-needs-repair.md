@@ -10,7 +10,7 @@ featuredImage: "/assets/images/garage-door-opener-repair.png"
 featuredImageAlt: "Garage door opener repair in Appleton WI with ceiling-mounted opener and wall control"
 primaryKeyword: "garage door opener repair appleton wi"
 category: "Maintenance Tips"
-----------------------------
+---
 
 Your automatic garage door opener works hard behind the scenes every single day. For Appleton homeowners, a reliable opener is especially important during Wisconsin's changing weather conditions.
 
